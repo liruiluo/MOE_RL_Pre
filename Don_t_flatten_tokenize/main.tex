@@ -1,0 +1,329 @@
+
+\documentclass{article} % For LaTeX2e
+\usepackage{iclr2025_conference,times}
+
+% Optional math commands from https://github.com/goodfeli/dlbook_notation.
+\input{math_commands}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{subfigure}
+\usepackage{hyperref}
+\usepackage{url}
+\usepackage{wrapfig}
+\usepackage{xcolor}
+\usepackage{cleveref}
+%\usepackage[textsize=tiny]{todonotes}
+\usepackage{csquotes}
+\hypersetup{colorlinks,linkcolor={blue},citecolor={magenta},urlcolor={blue}} 
+
+
+\definecolor{darkgreen}{rgb}{0.0, 0.5, 0.0}
+\newcommand{\rebuttal}[1]{\textcolor{black}{#1}}
+
+\title{Don't flatten, tokenize! Unlocking the key to SoftMoE's efficacy in deep RL}
+
+%Don't flatten, tokenize! Towards a better understanding of soft mixtures of experts in value-based deep RL
+%Don't flatten, tokenize!: Boost Scalability and Performance in Deep Reinforcement Learning via Preserving Spatial Structure 
+%Don't flatten, tokenize!: Rethinking Deep RL Architectures with Tokenization
+% .... : Boosting Deep RL Scalability and Performance with Tokenized Convolutions
+
+% Authors must not appear in the submitted version. They should be hidden
+% as long as the \iclrfinalcopy macro remains commented out below.
+% Non-anonymous submissions will be rejected without review.
+
+\author{
+Ghada Sokar \\
+Google DeepMind \\
+\texttt{gsokar@google.com}
+\And
+Johan Obando-Ceron \\
+Mila, Université de Montréal \\
+\texttt{jobando0730@gmail.com}
+\And
+Aaron Courville \\
+Mila, Université de Montréal \\
+\texttt{courvila@mila.quebec}
+\And
+Hugo Larochelle \\
+Google DeepMind \\
+\texttt{hugolarochelle@google.com}
+\And
+Pablo Samuel Castro \\
+Google DeepMind \\
+Mila, Université de Montréal \\
+\texttt{psc@google.com}
+}
+
+% The \author macro works with any number of authors. There are two commands
+% used to separate the names and addresses of multiple authors: \And and \AND.
+%
+% Using \And between authors leaves it to \LaTeX{} to determine where to break
+% the lines. Using \AND forces a linebreak at that point. So, if \LaTeX{}
+% puts 3 of 4 authors names on the first line, and the last on the second
+% line, try using \AND instead of \And before the third author name.
+
+\newcommand{\fix}{\marginpar{FIX}}
+\newcommand{\new}{\marginpar{NEW}}
+
+\newcommand{\stateSpace}{\mathcal{X}}
+\newcommand{\actionSpace}{\mathcal{A}}
+\newcommand{\transFn}{\mathcal{P}}
+\newcommand{\rewFn}{\mathcal{R}}
+\newcommand{\reals}{\mathbb{R}}
+
+
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: }#1\textbf{]}}}
+
+\definecolor{SeabornBlue}{RGB}{1,115,178}
+\definecolor{SeabornOrange}{RGB}{222,143,5}
+\definecolor{SeabornGreen}{RGB}{2,158,115}
+
+
+\iclrfinalcopy
+\begin{document}
+
+
+\maketitle
+
+\begin{abstract}
+The use of deep neural networks in reinforcement learning (RL) often suffers from performance degradation as model size increases. While soft mixtures of experts (SoftMoEs) have recently shown promise in mitigating this issue for online RL, the reasons behind their effectiveness remain largely unknown. In this work we provide an in-depth analysis identifying the key factors driving this performance gain. We discover the surprising result that tokenizing the encoder output, rather than the use of multiple experts, is what is behind the efficacy of SoftMoEs. Indeed, we demonstrate that even with an appropriately scaled single expert, we are able to maintain the performance gains, largely thanks to tokenization. 
+\end{abstract}
+
+
+\begin{figure}[!b]%{r}{0.5\textwidth}
+    \centering
+    \includegraphics[width=0.75\textwidth]{figures/results/aggregate_comparison_just_iqm_bar.pdf}
+    %\vspace{-0.4cm}
+    \caption{Comparison of IQM \citep{agarwal2021deep} for Rainbow \citep{hessel2018rainbow}, using the Impala architecture \citep{espeholt2018impala}, with {\color{SeabornGreen}penultimate layer scaled}, and with SoftMoE with {\color{SeabornBlue}varying numbers of experts}, and {\color{SeabornOrange}a single, scaled, expert}. IQM scores computed over 200M environment steps across 20 games, with 5 independent runs each\rebuttal{, higher is better}. Error bars represent 95\% stratified bootstrap confidence intervals. A single scaled expert matches the performance of multiple experts.
+    }
+    \label{fig:mainfig}
+    %\vspace{-1.1cm}
+\end{figure}
+
+\section{Introduction}
+\label{sec:intro}
+Deep networks have been central to many of the successes of reinforcement learning (RL) since their initial use in DQN \citep{mnih2015humanlevel}, which has served as the blueprint (in particular with regards to network architecture) for most of the followup works. However, recent works have highlighted the need to better understand the network architectures used, and question whether alternate choices can be more effective \citep{graesser2022state,sokar2022dynamic,sokar2023dormant,ceron2024pruned}. Indeed, \citet{ceron2024mixtures} and \citet{willi2024mixture} demonstrated that the use of Mixtures-of-Experts (MoEs) \citep{shazeer2017outrageously}, and in particular soft mixtures-of-experts (SoftMoEs) \citep{puigcerver2024from}, yields models that are more parameter efficient. \citet{ceron2024mixtures} hypothesized that the underlying cause of the effectiveness of SoftMoEs was in the induced {\em structured sparsity} in the network architecture. While some of their analyses did seem to support this, the fact that performance gains were observed {\em even with a single expert} seems to run counter to this hypothesis.
+
+
+In this work we seek to better understand the true underlying causes for the effectiveness of SoftMoEs in RL settings. Specifically, we perform a careful and thorough investigation into the many parts that make up SoftMoEs aiming to isolate the impact of each. Our investigation led to the surprising finding that {\bf the core strength of SoftMoEs lies in the tokenization of the outputs of the convolutional encoder}. 
+
+The main implications of this finding are two-fold. On the one hand, it suggests that we are still under-utilizing experts when incorporating MoEs in deep RL, given that we are able to obtain comparable performance with a single expert (see \autoref{fig:mainfig}). On the other hand, this finding has broader implications for deep RL agents trained on pixel-based environments, suggesting that the common practice of flattening the multi-dimensional outputs of the convolutional encoders is ineffective.
+
+Our main contributions can be summarized as follows:
+\begin{itemize}
+    \item We conduct a series of analyses to identify the key factors that allow soft Mixture of Experts (SoftMoEs) to effectively scale RL agents.
+    \item We demonstrate that tokenization plays a crucial role in the performance improvements.
+    \item We demonstrate that experts within the SoftMoEs are not specialized to handle specific subsets of tokens and exhibit redundancy. We explore the use of recent techniques for improving network utilization and plasticity to mitigate this redundancy.
+\end{itemize}
+
+
+The paper is organized as follows. We introduce the necessary background for RL in Section \ref{sec:rlBackground} and MoEs in Section \ref{sec:moes}; we present our experimental setup in Section \ref{sec:experimentalSetup}, and present our findings from Section \ref{sec:anaysis_softmoe_components} to Section \ref{sec:expertutilization}; finally, we discuss related works in Section \ref{sec:relatedWorks} and provide a concluding discussion in Section \ref{sec:conclusions}.
+
+
+
+\section{Online Deep Reinforcement Learning}
+\label{sec:rlBackground}
+In online reinforcement learning, an agent interacts with an environment and adjusts its behaviour based on the reinforcement (in the form of rewards or costs) it receives from the environment. At timestep $t$, the agent inhabits a state $x_t\in\stateSpace$ (where $\stateSpace$ is the set of all possible states) and selects an action $a_t\in\actionSpace$ (where $\actionSpace$ is the set of all possible actions) according to its behaviour policy $\pi:\stateSpace\rightarrow\mathfrak{P}(\actionSpace)$; the environment's dynamics yield a new state $x_{t+1}\in\stateSpace$ and a numerical reward $r_t\in\reals$. The goal of an RL agent is to find a policy $\pi^*$ that maximizes $V^{\pi}(x) := \sum_{t=0}^{\infty}\left[ \gamma ^t r_t | x_0 = x, a_t\sim\pi(x_t)\right]$, where $\gamma\in [0, 1)$ is a discount factor. In value-based RL, an agent maintains an estimate of $Q^{\pi}:\stateSpace\times\actionSpace\rightarrow\reals$, defined as $Q^{\pi}(x, a) = \sum_{t=0}^{\infty}\left[ \gamma ^t r_t | x_0 = x, a_0 = a, a_t\sim\pi(x_t)\right]$; from any state $x\in\stateSpace$, a policy $\pi$ can then be improved via $\pi(x) = \arg\max_{a\in\actionSpace}Q^{\pi}(x, a)$ \citep{sutton98rl}.
+
+
+In its most basic form, value-based deep reinforcement learning (DRL) extends this approach by using neural networks, parameterized by $\theta$, to estimate $Q$. While the network architectures used may vary across environments, the one originally introduced by \citet{mnih2015humanlevel} for DQN has served as the basis for most. Given that its inputs consist of frames of pixels from Atari games \citep{bellemare2013arcade}, this network consisted of a series of convolutional layers followed by a series of fully-connected layers; for the remainder of this work we will refer to the convolutional layers as the {\em encoder}. The top panel of \autoref{fig:networkArchitectures} displays a simplified version of this network, where the encoder produces a 3-dimensional tensor with dimensions $(h,w,d)$; this tensor is flattened to a vector of length $h*w*d$, which is fed through fully-connected layers to produce the estimates for $Q$. One notable variant to the original DQN encoder is Impala's use of a ResNet encoder \citep{espeholt2018impala}, which has been shown to outperform the former. In this work, we mainly focus on the more recent ResNet encoder, but also include some results using the original DQN encoder.
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/architectures.pdf}
+    %\vspace{-0.4cm}
+    \caption{\textbf{The various architectures considered in this work.} {\it Top:} baseline architecture; {\it Middle:} SoftMoE architecture; {\it Bottom:} Top-$k$ architecture.}
+    \label{fig:networkArchitectures}
+    %\vspace{-0.2cm}
+\end{figure}
+\section{Mixtures of Experts}
+\label{sec:moes}
+While there have been a number of architectural variations proposed, in this work we focus on Mixtures of Experts as used by \citet{ceron2024mixtures}. Mixtures of experts ({\bf MoEs}) were originally proposed as a network architecture for supervised learning tasks using conditional computation, which enabled training very large networks \citep{shazeer2017outrageously,fedus2022switch}. This was achieved by including MoE modules which route a set of input {\em tokens} to a set of $n$ sub-networks, or {\em experts}; the output of these experts are then combined and fed through the rest of the outer network. The routing/gating mechanism and the expert sub-networks are all trainable. In top-$k$ routing, we consider two methods for pairing tokens and experts. In {\bf token choice routing}, each token gets an assignation to $k$ experts, each of which has $p$ {\em slots} \rebuttal{(the number of processed inputs by each expert)}; this may result in certain tokens being dropped entirely by the MoE module and, more critically, certain experts may receive no tokens \citep{gale2023megablocks}. To overcome having load-imbalanced experts, \citet{zhou2022mixture} \rebuttal{proposed} {\bf expert choice routing}, where each expert chooses $p$ tokens for its $p$ slots, which results in better expert load-balancing. See the bottom row of \autoref{fig:networkArchitectures} for an illustration of this. \rebuttal{Unless otherwise specified, we use a value of $p$ equals to $\frac{\#tokens}{\#experts}$}. In most of our analyses, we focus on expert choice routing as it demonstrates higher performance than token choice routing (see Appendix \ref{appendix_sec:expertChoicevsTokenChoice} for full empirical comparison between the two across varying number of experts).
+
+\citet{puigcerver2024from} introduced {\bf SoftMoEs}, which replace the hard token-expert pairing with a ``soft'' assignation. Specifically, rather than having each expert slot assigned to a specific token, each slot is assigned a (learned) weighted combination of all the tokens. Thus, each expert receives $p$ weighted averages of all the input tokens. See the middle row of \autoref{fig:networkArchitectures} for an illustration of this.
+
+\citet{ceron2024mixtures} proposed replacing the penultimate dense layer of a standard RL network with an MoE module; the authors demonstrated that, when using SoftMoEs, value-based online RL agents exhibit signs of a ``scaling law'', whereby adding more parameters (in the form of more experts) monotonically improves performance. This is in stark contrast with what is observed with the original architectures, where extra parameters result in performance degradation (see \autoref{fig:mainfig}). The  authors argued that the structured sparsity induced by the MoE architecture is what was primarily responsible for their strong performance.
+
+In order to maintain the shape of the input tokens (as originally done with MoE architectures), \citet{ceron2024mixtures} add a projection layer after the ``combine'' step ($\Phi_C$ in \autoref{fig:networkArchitectures}).
+Another important detail is the proposed tokenization scheme.
+MoEs are most commonly used in NLP transformer architectures where tokens are clearly defined (typically as encodings of words), but this tokenization is not something readily available for online RL agents. Thus, \citet{ceron2024mixtures} proposed a number of mechanisms for tokenizing the output of the encoder. 
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=\textwidth]{figures/tokenizationSchemes.pdf}
+    %\vspace{-0.4cm}
+    \caption{\textbf{Tokenization schemes considered in this work}, specified in the bottom row.}
+    \label{fig:tokenizationSchemes}
+    %\vspace{-0.2cm}
+\end{figure}
+
+\paragraph{Tokenization} As mentioned in \cref{sec:rlBackground}, the output of a standard RL encoder is a 3-dimensional tensor with dimensions $(h, w, d)$; \citet{ceron2024mixtures} proposed a few possible ways of creating tokens from this output. {\bf PerConv} tokenization creates $h*w$ tokens of dimension $d$; {\bf PerFeat} tokenization creates $d$ tokens of dimension $h*w$;
+see \autoref{fig:tokenizationSchemes} for an illustration. Although necessary for compatibility with transformer MoEs, this tokenization is a departure from the standard practice of flattening the encoder output, as discussed in Section \ref{sec:rlBackground}.
+
+\section{Understanding the impact of the SoftMoE components}
+\label{sec:understandingSoftMoE}
+While \citet{ceron2024mixtures} demonstrated the appeal of SoftMoEs for online RL agents, it was not clear whether all of the components of SoftMoEs were important for the performance gains, or whether some were more critical. Further, it was observed that SoftMoEs failed to provide similar gains in actor-critic algorithms such as PPO \citep{schulman17ppo} and SAC \citep{haarnoja2018soft}. This section aims to isolate the impact of each of these components.
+
+\subsection{Experimental setup}
+\label{sec:experimentalSetup}
+The genesis of our work is to provide a deeper understanding of SoftMoEs in online RL. For this reason, we will mostly focus on SoftMoEs applied to the Rainbow agent \citep{hessel2018rainbow} with 4 experts and the Impala achitecture \citep{espeholt2018impala}, as this was the most performant setting observed by \citet{ceron2024mixtures}. We explore variations of this setting where useful in clarifying the point being argued. We evaluate performance on the same $20$ games of the Arcade Learning Environment (ALE) \citep{bellemare2013arcade} benchmark used by \citet{ceron2024mixtures} for direct comparison, with $5$ independent seeds for each experiment. However, we include the results of our main findings on the full suite of 60 games.  We will use the notation \enquote{SoftMoE-$n$} to denote a SoftMoE architecture with $n$ experts.
+All experiments were run on Tesla P100 GPUs using the same Dopamine 
+library \citep{castro18dopamine} used by \citet{ceron2024mixtures}; each run with 200 million environment steps took between six and eight days. Following the guidelines suggested by \citet{agarwal2021deep}, we report human-normalized aggregated interquartile mean (IQM), regular mean, median, and optimality gap, with error bars indicating 95\% stratified bootstrap confidence intervals. Performance gains are indicated by increased IQM, median, and mean scores, and reduced optimality gaps. See \autoref{appendix_sec:experimental_details} for further details.
+
+
+\subsection{Analysis of SoftMoE Components}
+\label{sec:anaysis_softmoe_components}
+At a high level, SoftMoE modules for online RL agents consist of {\bf (i)} the use of a learnable tensor $\Phi$ used to obtain the dispatch ($\Phi_D$) and combine ($\Phi_C$) weights; {\bf (ii)} processing $p$ input slots per expert; {\bf (iii)} the architectural dimensions (network depth and width); {\bf (iv)} the use of $n$ experts; and {\bf (v)} the tokenization of the encoder output. The middle row of \autoref{fig:networkArchitectures} provides an illustration of these. In this section we discuss the first four with empirical evaluation demonstrated in Figures~\ref{fig:mainfig} and \ref{fig:section4Aggregate}, and devote a separate section for tokenization, which turns out to be crucial for performance. \rebuttal{The same analysis was performed on DER, yielding the same results, and can be found in Appendix \ref{appendix:analysis_softMoE_components}.}
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/results/section4_aggregate_v2.pdf}
+    \vspace{-0.4cm}
+\caption{{\bf Understanding the impact of SoftMoE components.} Using Rainbow with the Impala architecture as our base, we investigate key aspects of SoftMoE-4: (i) combining tokens, (ii) expert specialization, and (iii) adjusting architectural dimensions. \rebuttal{Reporting IQM \citep{agarwal2021deep}, where higher is better.} SoftMoE does not appear to suffer from the performance degradation observed in the baseline, even when increasing its width.
+    }
+    \label{fig:section4Aggregate}
+    \vspace{-0.2cm}
+\end{figure}
+
+\paragraph{Processing \textit{combined} tokens} To assess the impact of SoftMoE's weighted combination of tokens via the learnable weights $\Phi$, we compare it with expert choice routing, where experts select sets of (non-combined) tokens. While combined tokens yield improved performance, expert choice routing itself demonstrates substantial gains over the baseline and effectively scales the network (see group~{\bf [i]} in \autoref{fig:section4Aggregate}). Thus, {\em combined tokens alone do not explain SoftMoE's efficacy}.
+
+
+
+\paragraph{Expert specialization} 
+Each expert in a MoE architecture has a limited set of {\em slots}: with token/expert selection each slot corresponds to one token, while in SoftMoE each slot corresponds to a particular weighted combination of all tokens. This constraint could encourage each expert to specialize in certain types of tokens in a way that is beneficial for performance and/or scaling. To investigate, we increase the number of slots to be equal to the number of tokens (effectively granting unlimited capacity).
+Group~{\bf [ii]} in \autoref{fig:section4Aggregate} demonstrates that for both SoftMoE and expert choice routing, the performance sees little change when increasing the number of slots, suggesting that {\em expert specialization is not a major factor in SoftMoE's performance}.
+
+
+
+
+
+
+\paragraph{Expert width} \citet{ceron2024mixtures} scaled up the penultimate layer of the baseline model with the intent of matching the parameters of the SoftMoE networks, thereby demonstrating that na\"{i}vely scaling width degrades performance. While they demonstrated that a performance drop is not observed when scaling {\em down} the dimensionality of each expert, they did not investigate what occurs when scaling {\em up} the experts dimensionality. This experiment makes sense if comparing the baseline's penultimate layer dimensionality with that of each expert, rather than with the {\em combined} experts dimensionality. Scaling up the width of experts in SoftMoE does not lead to the same performance degradation observed in the scaled baseline model as shown in the first group~{\bf [iii]} of  \autoref{fig:section4Aggregate}.
+
+
+\paragraph{Network depth} As mentioned in Section \ref{sec:moes}, SoftMoE models have an additional projection layer within each expert to maintain input token size, resulting in a different number of layers compared to the baseline model. To determine whether this extra layer contributes to SoftMoE's performance gains, we add a layer of the same size to the baseline model after the penultimate layer. The second group~{\bf [iii]} in \autoref{fig:section4Aggregate} demonstrates that this added layer does not improve the baseline model's performance nor its ability to scale, suggesting that {\em SoftMoE's performance gains are not attributable to the presence of the extra projection layer}.
+
+\paragraph{Multiple experts} \citet{ceron2024mixtures} demonstrated that multiple experts improves performance. However, the performance gains plateau beyond a certain point, with minimal improvement observed after utilizing four experts (see \autoref{fig:mainfig}). Consequently, the presence of multiple experts cannot fully account for the observed performance advantages over the baseline model, suggesting that other factors are also contributing to the improved results.
+
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=0.8\textwidth]{figures/results/TokenizedRainbowUnscaledRebuttal_IntEstimates.pdf}
+    \includegraphics[width=0.8\textwidth]{figures/results/TokenizedRainbowScaledRebuttal_IntEstimates.pdf}
+    \caption{\textbf{Evaluating impact of tokenizing Rainbow-lite} \rebuttal{with unscaled (top) and scaled (bottom) architectures, using sum/mean over convolutional features, and exploring both PerConv and PerFeat tokenization schemes. Reporting Median, IQM, Mean, and Optimaly Gap scores \citep{agarwal2021deep}. Higher is better for all except Optimality Gap.} Tokenization with a scaled representation can yield significant significant performance gains. \rebuttal{Per-game results available in Appendix~\ref{sec:perGameResults}.} 
+    }
+    \label{fig:nonmoeexper}
+\end{figure}
+
+\section{Don't flatten, tokenize!}
+\label{sec:don'tflatten}
+A crucial structural difference remains in how SoftMoE and the baseline model process the encoder's output: while the baseline model flattens the output of the final convolutional layer, SoftMoE divides it into distinct tokens (see Section \ref{sec:moes}). We conduct a series of experiments to properly assess the impact of this choice, going from the standard baseline architecture to a single-expert SoftMoE.
+
+
+\paragraph{Tokenized baseline} Our first experiment simply adds tokenization to the baseline architecture. Specifically, given the 3-dimensional encoder output with shape $[h, w, d]$, we replace the standard flattening (to a vector of dimension $h*w*d$) with a reshape to a matrix of shape $[h*w, d]$ \rebuttal{for PerConv tokenization or $[d, h*w]$ for PerFeat}; then, prior to the final linear layer, we either sum over the first dimension or take their average. Since this operation is not immediately applicable to Rainbow (due to Noisy networks), we explored this experiment with Rainbow-lite, a version of Rainbow in Dopamine which only includes C51 \citep{bellemare2017distributional}, multi-step returns, and prioritized experience replay. \autoref{fig:nonmoeexper} demonstrates that this simple change can yield statistically significant improvements for Rainbow-lite, {\em providing strong evidence that tokenization plays a major role in the \rebuttal{ successful scaling of DRL networks}}.
+
+
+
+\paragraph{Single expert processing all tokens sparsely} To assess the influence of tokenization within the MoE framework, while ablating all other four components studied in Section \ref{sec:anaysis_softmoe_components}, we explore using a \textit{single} expert to process \textit{all} input tokens. Each token is \textit{sparsely} processed in one of the single expert slots. This corresponds to expert choice-1. In line with the ``expert width'' investigation from the last section, we study expert choice-1 with the scaled expert dimensionality to match the scaled baseline one. As \autoref{fig:1expertvsmultipleexperts} shows, even with a single expert the performance is comparable to that of SoftMoE with multiple experts. This suggests \textit{that tokenization is one of the major factors in the performance gains achieved by SoftMoE}. 
+
+\begin{figure}[!b]
+    \centering
+    \includegraphics[width=0.75\textwidth]{figures/results/section5_aggregate_v2_4experts.pdf}
+    \caption{\textbf{Combined tokenization is a key driver of SoftMoE's efficacy}. \rebuttal{Reporting IQM \citep{agarwal2021deep}, where higher is better.} SoftMoE with a single scaled expert has comparable performance with using multiple experts. Even \textit{non-combined} tokenization (e.g. ExpertChoice) with a single expert achieves similar performance.}
+    \label{fig:1expertvsmultipleexperts}
+\end{figure}
+
+\paragraph{Combined tokenization is a key driver} We further investigate the impact of \textit{combined} tokenization in the single expert setting. To this end, we study SoftMoE-1, with scaled expert dimensionality as before. As \autoref{fig:1expertvsmultipleexperts} shows, using combined tokens with a single expert brings the performance even closer to the multiple expert setting. \rebuttal{Similar results were observed in SoftMoE with 2 and 8 experts (See Appendix \ref{appendix:don'tFlatten} for more details).} This further confirms that {\em (combined) tokenization is the key driver of SoftMoE's efficacy}. 
+
+\subsection{Additional analyses}
+The main takeaway from the previous section is that SoftMoE with a single (scaled) expert  is as performant as the variant with multiple unscaled experts. To better understand this finding, in this section we perform an extra set of experiments with this variant of SoftMoE.
+
+
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=0.6\textwidth]{figures/results/tokentypes__just_iqm_bar.pdf}
+    \caption{\textbf{Comparison of different tokenization schemes} for SoftMoE-1 with the standard and scaled penultimate layer. \rebuttal{Reporting IQM \citep{agarwal2021deep}, where higher is better.}  PerConv achieves the highest performance, suggesting that maintaining the spatial structure of the features plays a role on the observed benefits.}
+    \label{fig:tokentypesBar}
+\end{figure}
+
+\paragraph{Are all types of tokenization equally effective?} We compare the different tokenization types presented in \cref{sec:moes}, in addition to two new types of tokenization, which serve as useful references: {\bf PerPatch} tokenization splits the 3-dimensional $[h,w,d]$ tensor into $\rho$ patches, over which average pooling is performed resulting in a new tensor of dimensions $[h/\rho, w/\rho, d]$; {\bf Shuffled} is similar to PerConv, except it first applies a fixed permutation on the encoder output. See \autoref{fig:tokenizationSchemes} for an illustration of these. The comparison of the different tokenization types is summarized in \autoref{fig:tokentypesBar}. Consistent with the findings of \citet{ceron2024mixtures}, PerConv performs best, and in particular outperforms PerFeat. It is interesting to observe that PerPatch is close in performance to PerConv, while Shuffled is the worst performing. The degradation from PerPatch is likely due to the average pooling and reduced dimensionality; the degradation from shuffling is clearly indicating that it is important to maintain the spatial structure of the encoding output. Combining these results with our previous findings suggests that {\em using tokenization maintains the spatial structure learned by the convolutional encoder, and is crucial to maximizing performance}. 
+
+
+\begin{figure}[!b]
+    \centering
+    \includegraphics[width=0.6\textwidth]{figures/results/reduced_slots_per_experts.pdf}
+    %\vspace{-0.4cm}
+    \caption{{\bf Evaluating the impact of fewer slots with a single scaled (by 4x) expert}  for both SoftMoE and ExpertChoice. \rebuttal{Reporting IQM \citep{agarwal2021deep}, where higher is better.} Even with drastically fewer slots, SoftMoE-1 remains competitive.}
+    \label{fig:effectofcombinetokenReduceslots}
+    %\vspace{-0.2cm}
+\end{figure}
+
+\paragraph{Computational efficiency by combined tokens} \citet{puigcerver2024from} highlighted that the time complexity of SoftMoE depends directly on the number of slots. As can be seen in \autoref{fig:effectofcombinetokenReduceslots}, using SoftMoE-1 with only 10\% of the default number of slots \rebuttal{(kept fixed throughout training)}, and even with a single slot, achieves a comparable performance to using the regular number of slots. On the other hand, the reduced performance of ExpertChoice-1 further confirms the gains added by combining tokens in SoftMoE. 
+
+
+\paragraph{More games and different encoders} Our results so far were run on the 20 games used by \citet{ceron2024mixtures} and with the Impala ResNet encoder \citep{espeholt2018impala}. To ensure our findings are not specific to these choices, we extend our evaluation to all 60 games in the ALE suite, and with the standard CNN encoder of \citet{mnih2015human}. Our findings, as illustrated in \autoref{fig:CNNEncoder_60games}, demonstrate consistent results across all games and various encoder architectures.
+\rebuttal{We further conducted extra experiments on Procgen \citep{cobbe2019procgen}, which are consistent with our findings (Figure~\ref{fig:procgenIntEstimates} in Appendix~\ref{sec:appendixExtraEnvs}).}
+
+\paragraph{More agents} We focused on Rainbow for the majority of our investigation due to the positive results demonstrated by \citet{ceron2024mixtures}, but it is important to also consider other agents. To this point, we evaluate the impact of a single scaled expert on DQN \citep{mnih2015human} and DER \citep{van2019use}. Note that we replace the original Huber loss used in DQN with mean-squared error loss, as it has been shown to be more performant \citep{ceron2021revisiting}, and coincides with what was used by \citet{ceron2024mixtures}. Following the training regime used by \citet{ceron2024mixtures}, we train DER for 50M environment frames.
+In the DQN setting, SoftMoE-1 does not appear to offer significant improvements over the baseline, potentially due to the limited gains observed with SoftMoE-4 (\autoref{fig:differentagentsDERDQN}, top). Further investigation is needed to understand how the inherent instability of DQN might limit the potential benefits of SoftMoE. On the other hand, consistent with our finding in Rainbow, in DER, where SoftMoE-4 achieves a superior performance over the baseline, SoftMoE-1 is able to offer the same gains (\autoref{fig:differentagentsDERDQN}, bottom).  \rebuttal{To further evaluate the generality of our claims, we conducted initial experiments with SAC \citep{haarnoja2018soft} on the CALE \citep{farebrother2024cale}, which is a continuous action version of the original ALE. In Figure~\ref{fig:SACCALE} in Appendix~\ref{sec:appendixExtraEnvs} it can be seen that tokenization provides an improvement over flattening.}
+
+
+\begin{figure}[!t]
+    \centering
+        \includegraphics[width=0.8\textwidth]{figures/results/60games_and_CNN_joint_bar_plot.pdf}
+    %\vspace{-0.4cm}
+    \caption{(Left) \textbf{Evaluating the performance on all \rebuttal{of} the 60 games of Atari 2600}. \rebuttal{Reporting IQM \citep{agarwal2021deep}, where higher is better.} Consistent with our results SoftMoE-1 matches the performance of multiple experts over the full suite. (Right) \textbf{CNN Encoder}. The performance gain of SoftMoE-1 is present when training with the standard CNN encoder, revealing the importance of tokenization across architectures. }
+    \label{fig:CNNEncoder_60games}
+    \vspace{-0.2cm}
+\end{figure}
+
+\section{Calling all experts!}
+\label{sec:expertutilization}
+Our findings in Sections~\ref{sec:understandingSoftMoE} and \ref{sec:don'tflatten} reveal that the main benefit of using SoftMoE architectures is in the tokenization and their weighted combination, rather than in the use of multiple experts. The fact that we see no evidence of expert specialization suggests that most experts are redundant (see \autoref{fig:section4Aggregate}). Rather than viewing this as a negative result, it's an opportunity to develop
+new techniques to improve expert utilization and maximize the use of MoE architectures in RL.
+
+\begin{figure}[!b]
+    \centering
+    \includegraphics[width=0.95\textwidth]{figures/results/SoftMoE-4_DQN_IntEstimates.pdf}
+    \includegraphics[width=0.95\textwidth]{figures/results/SoftMoE-4_DER_IntEstimates.pdf}
+    %\vspace{-0.4cm}
+    \caption{\textbf{Evaluating on DQN (top) and DER (bottom).} \rebuttal{Reporting Median, IQM, Mean, and Optimaly Gap scores \citep{agarwal2021deep}. Higher is better for all except Optimality Gap.} When combined with DQN, SoftMoE with a single scaled expert does not provide gains over the baseline. In contrast, when combined with DER, it achieves performance comparable to SoftMoE-4.}
+    \label{fig:differentagentsDERDQN}
+    \vspace{-0.2cm}
+\end{figure}
+
+As a first step in this direction, we adopt existing techniques designed to improve network utilization: (1) periodic \textit{reset} of parameters \citep{nikishin2022primacy} and (2) Shrink and Perturb (S\&P) \citep{ash2020warm}, as used by \citet{d'oro2022sampleefficient} and \citet{schwarzer23bbf}. We perform these experiments on Rainbow and DER with SoftMoE-4. We explore applying resets and S\&P to either all experts or a subset of experts, where the experts to reset are those that have the highest fraction of dormant neurons \citep{sokar2023dormant}. We reset every 20M and 200K environment steps for Rainbow and DER, respectively. \rebuttal{More experimental details can be found in Appendix \ref{appendix_sec:expertUtilization}}.
+
+Interestingly, the effectiveness of these techniques varied across different RL agents.  While weight reset and S\&P did not improve expert utilization in the Rainbow agent, they led to enhanced performance in the sample-efficient DER agent (\autoref{fig:reset_Rainbow_DER}). Within the DER agent, resetting a subset of experts proved more beneficial than resetting all, while applying S\&P to all experts yielded the most significant performance gains. These findings highlight the need for further research into methods that can optimize expert utilization and improve performance in RL with SoftMoE.
+
+\begin{figure}[!t]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/results/resetAggregate_IntEstimates.pdf}
+    \caption{{\bf Evaluating the use of resets (top) and S\&P (bottom) for improving expert utilization on Rainbow (left column) and DER (right column).} \rebuttal{Reporting IQM \citep{agarwal2021deep}, where higher is better.} All experiments run with SoftMoE-4. Resets and S\&P seem to benefit DER, but degrade performance for Rainbow.}
+    \label{fig:reset_Rainbow_DER}
+\end{figure}
+
+\input{related_works}
+
+
+
+\section{Conclusions}
+\label{sec:conclusions}
+We began our investigation by evaluating the components that make up a SoftMoE architecture, so as to better understand the strong performance gains reported by \citet{ceron2024mixtures} when applied to value-based deep RL agents. One of the principal, and rather striking, findings is that tokenizing the encoder outputs is one of the primary drivers of the performance improvements. Since tokenization is mostly necessary for pixel-based environments (where encoders typically consist of convolutional layers), it can explain the absence of performance gains observed by \citet{ceron2024mixtures} and \citet{willi2024mixture} when using MoE architectures in actor-critic algorithms, since these were evaluated in non-pixel-based environments. \rebuttal{Initial experiments illustrated in Figure~\ref{fig:SACCALE} suggest that our findings carry over to actor-critic agents on continuous control environments.}
+
+More generally, our findings suggests that the common practice of flattening the outputs of deep RL encoders is sub-optimal, as it is likely {\em not} maintaining the spatial structure output by the convolutional encoders. Indeed, the results with PerConv versus Shuffled tokenization in \autoref{fig:tokentypesBar} demonstrate that maintaining this spatial structure is important for performance. This is further confirmed by our results in \autoref{fig:nonmoeexper}, where we can observe that not flattening the convolutional outputs can lead to significant improvements. This idea merits further investigation, as the results vary depending on the architecture used and whether features are summed or averaged over.
+
+It is somewhat surprising that our results do not seem to carry over to DQN. However, the fact that we {\em do} see similar results with Rainbow-lite and DER (which is based on Rainbow) suggests that the use of categorical losses may have a complementary role to play. This is a point argued by \citet{farebrother24classification} and merits further inquiry.
+
+ Although the use of mixtures-of-experts architectures for RL show great promise, our results suggest that most of the experts are not being used to their full potential. The findings in \autoref{fig:reset_Rainbow_DER} present one viable mechanism for increasing their use, but further research is needed to continue increasing their efficacy for maximally performant RL agents.
+
+\section*{Acknowledgements} The authors would like to thank Gheorghe Comanici, Jesse Farebrother, Joan Puigcerver, Doina Precup, and the rest of the Google DeepMind team for valuable feedback on this work. We would also like to thank the Python community \citep{van1995python, oliphant07python} for developing tools that enabled this work, including NumPy \citep{harris2020array}, Matplotlib \citep{hunter2007matplotlib} and JAX \citep{bradbury2018jax}.
+
+\bibliography{references}
+\bibliographystyle{iclr2025_conference}
+
+\appendix
+\include{appendix}
+
+\end{document}
