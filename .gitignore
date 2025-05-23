@@ -1,0 +1,39 @@
+# LaTeX temporary files
+*.aux
+*.bbl
+*.bcf
+*.blg
+*.lof
+*.log
+*.lot
+*.nav
+*.out
+*.run.xml
+*.snm
+*.synctex.gz
+*.toc
+*.vrb
+*.fdb_latexmk
+*.fls
+*.pptx
+
+# Backup files
+*.bak
+
+# Build artifacts (like PDF if you only want to track source)
+# Uncomment the line below if you don't want to track the PDF
+# *.pdf
+
+# Directory for figures from papers (if they are submodules or downloaded)
+# Adjust if these are part of your source
+# Mixtures_of_Experts_Unlock Parameter_Scaling_for_Deep_RL/
+# Don_t_flatten_tokenize/
+
+# IDE specific files
+.idea/
+.vscode/
+
+# OS specific files
+.DS_Store
+._*
+Thumbs.db 

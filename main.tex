@@ -1,6 +1,6 @@
 \documentclass{beamer}
-\usetheme{Madrid} % You can choose other themes like Warsaw, Berlin, etc.
-\usecolortheme{default}
+\usetheme{Madrid} % 使用Madrid主题，与BIGAI模板布局更匹配
+\usecolortheme{default} % 使用默认颜色，然后自定义
 
 \usepackage[utf8]{inputenc}
 \usepackage{amsmath}
@@ -10,20 +10,112 @@
 \usepackage{booktabs} % For better tables
 \usepackage{hyperref} % For clickable links
 
-% Define some common citations to avoid repetition
-\newcommand{\ceronMoE}{Ceron, Sokar, Willi, et al. (2024)}
-\newcommand{\sokarTokenize}{Sokar, Obando-Ceron, et al. (2024)}
-\newcommand{\puigcerverSoftMoE}{Puigcerver et al. (2023)}
-\newcommand{\shazeerMoE}{Shazeer et al. (2017)}
-\newcommand{\mnihDQN}{Mnih et al. (2015)}
-\newcommand{\hesselRainbow}{Hessel et al. (2018)}
-\newcommand{\espeholtImpala}{Espeholt et al. (2018)}
-\newcommand{\fedusSwitch}{Fedus et al. (2022)}
-\newcommand{\agarwalStats}{Agarwal et al. (2021)}
+% 简化的颜色方案，减少颜色种类
+\definecolor{BigAIBlue}{RGB}{0,102,204}  % 主蓝色
+\definecolor{BigAIGray}{RGB}{102,102,102}  % 中性灰
+\definecolor{BigAILightGray}{RGB}{248,248,248}  % 极浅灰
 
+% 设置简化的颜色主题
+\setbeamercolor{structure}{fg=BigAIBlue}
+\setbeamercolor{title}{fg=white,bg=BigAIBlue}
+\setbeamercolor{frametitle}{fg=BigAIBlue,bg=white}
+\setbeamercolor{normal text}{fg=black,bg=white}
+\setbeamercolor{alerted text}{fg=BigAIBlue}
+\setbeamercolor{block title}{fg=white,bg=BigAIBlue}
+\setbeamercolor{block body}{fg=black,bg=BigAILightGray}
 
-\title[MoE for Deep RL Scaling]{Unlocking Parameter Scaling in Deep RL with Mixtures of Experts and the Power of Tokenization}
-\author{Presentation based on work by \ceronMoE{} and \sokarTokenize}
+% 设置页眉页脚颜色（简化）
+\setbeamercolor{headline}{fg=white,bg=white}
+\setbeamercolor{footline}{fg=BigAIGray,bg=white}
+
+% 设置字体
+\setbeamerfont{title}{size=\Large,series=\bfseries}
+\setbeamerfont{frametitle}{size=\large,series=\bfseries}
+\setbeamerfont{block title}{size=\normalsize,series=\bfseries}
+
+% 自定义页眉，简化设计，不放置logo
+\setbeamertemplate{headline}{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=\paperwidth,ht=2ex,dp=0.5ex,leftskip=.3cm,rightskip=.3cm plus1fil]{headline}% Reduced height, icon removed
+    \usebeamerfont{title in head/foot}\hfill % 页眉不放置logo，保持简洁
+    % Icon removed from headline
+  \end{beamercolorbox}%
+  }%
+  \vskip0pt%
+}
+
+% 在标题页添加BIGAI logo（去掉，因为现在在页脚显示）
+\titlegraphic{
+  \vspace{1cm}
+  % 不在这里显示logo了
+}
+
+% 自定义页脚，左下角放置icon2，右下角放置页码
+\setbeamertemplate{footline}{
+  \leavevmode%
+  \hbox{%
+  \begin{beamercolorbox}[wd=0.5\paperwidth,ht=4.5ex,dp=1ex,left,leftskip=1ex]{footline} % Icon on the left, increased height
+    \includegraphics[height=4ex]{template/BIGAI_icon2.png}%
+  \end{beamercolorbox}%
+  \begin{beamercolorbox}[wd=0.5\paperwidth,ht=4.5ex,dp=1ex,right,rightskip=1ex]{footline} % Page number on the right, increased height
+    \usebeamerfont{page number in head/foot}\insertframenumber{} / \inserttotalframenumber%
+  \end{beamercolorbox}%
+  }%
+  \vskip0pt%
+}
+
+% Bibliography setup
+\usepackage[style=authoryear-comp,natbib=true,backend=biber,maxcitenames=2,maxbibnames=99]{biblatex}
+\addbibresource{references.bib}
+
+% 自定义引用格式
+\renewcommand*{\nameyeardelim}{\addcomma\space}
+
+% 自定义脚注引用命令
+\newcommand{\fcite}[1]{\cite{#1}\footnote{\tiny\fullcite{#1}}}
+
+% 增强的视觉设置（简化版）
+\setbeamertemplate{blocks}[rounded][shadow=false]  % 去掉阴影，更简约
+\setbeamertemplate{itemize items}[circle]
+\setbeamercolor{itemize item}{fg=BigAIBlue}
+\setbeamercolor{itemize subitem}{fg=BigAIGray}  % 使用灰色而不是蓝色
+
+% 移除默认导航符号
+\setbeamertemplate{navigation symbols}{}
+
+% 自定义标题页设计，匹配简约风格
+\setbeamertemplate{title page}{
+  \vbox{}
+  \vfill
+  \begingroup
+    \centering
+    \begin{beamercolorbox}[sep=8pt,center,colsep=-4bp,rounded=true,shadow=false]{title}
+      \usebeamerfont{title}\inserttitle\par%
+      \ifx\insertsubtitle\@empty%
+      \else%
+        \vskip0.25em%
+        {\usebeamerfont{subtitle}\usebeamercolor[fg]{subtitle}\insertsubtitle\par}%
+      \fi%     
+    \end{beamercolorbox}%
+    \vskip1em\par
+    \begin{beamercolorbox}[sep=8pt,center,colsep=-4bp,rounded=true]{author}
+      \usebeamerfont{author}\insertauthor
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[sep=8pt,center,colsep=-4bp,rounded=true]{institute}
+      \usebeamerfont{institute}\insertinstitute
+    \end{beamercolorbox}
+    \begin{beamercolorbox}[sep=8pt,center,colsep=-4bp,rounded=true]{date}
+      \usebeamerfont{date}\insertdate
+    \end{beamercolorbox}\vskip0.5em
+    {\usebeamercolor[fg]{titlegraphic}\inserttitlegraphic\par}
+  \endgroup
+  \vfill
+}
+
+\title[MoE \& Tokenization in Deep RL]{Breaking the Parameter Scaling Barrier in Deep RL: The Power of Soft Mixtures of Experts and Tokenization}
+\author[Research Presentation]{Based on \fcite{ceron2024mixtures} and \fcite{sokar2024tokenize}}
+\institute{Beijing Institute for General Artificial Intelligence (BIGAI)}
 \date{\today}
 
 \begin{document}
@@ -34,447 +126,459 @@
 \end{frame}
 
 % --- Outline ---
-\begin{frame}{Outline}
-  \tableofcontents
-\end{frame}
-
-% --- Section 1: Introduction & Motivation ---
-\section{Introduction \& Motivation}
-\begin{frame}{The Challenge of Scaling in Deep Reinforcement Learning}
-  \begin{itemize}
-    \item Deep Reinforcement Learning (RL) combines RL algorithms with deep neural networks, achieving superhuman performance in complex tasks (e.g., \mnihDQN{}; Berner et al., 2019).
-    \item However, unlike supervised learning where performance often scales with model size (Kaplan et al., 2020), increasing parameter count in Deep RL models frequently hurts final performance (\ceronMoE{}).
-    \item This makes developing scaling laws for RL challenging.
-    \item Recent work highlights unusual phenomena when using deep networks in RL, often differing from supervised learning observations (Ostrovski et al., 2021; Kumar et al., 2021a; Lyle et al., 2022a; \sokarTokenize{}).
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Mixture of Experts (MoE) as a Potential Solution}
-  \begin{itemize}
-    \item Architectural advances like Transformers (Vaswani et al., 2017), Adapters (Houlsby et al., 2019), and MoEs (\shazeerMoE{}) have been key to scaling in supervised learning.
-    \item MoEs, particularly Soft MoEs (\puigcerverSoftMoE{}), allow networks to scale to billions/trillions of parameters by routing inputs to specialized "expert" sub-networks (\fedusSwitch{}).
-    \item This induces structured sparsity and can improve performance and efficiency (Evci et al., 2020).
-    \item This presentation explores two key papers:
-    \begin{enumerate}
-        \item \textit{Mixtures of Experts Unlock Parameter Scaling for Deep RL} (\ceronMoE{})
-        \item \textit{Don't flatten, tokenize! Unlocking the key to SoftMoE's efficacy in deep RL} (\sokarTokenize{})
-    \end{enumerate}
-  \end{itemize}
-\end{frame}
-
-% --- Section 2: Paper 1: MoEs Unlock Parameter Scaling (Ceron et al., 2024) ---
-\section{Paper 1: Mixtures of Experts Unlock Parameter Scaling for Deep RL}
-\begin{frame}{Paper 1: Core Idea & Contributions}
-    \frametitle{Mixtures of Experts Unlock Parameter Scaling for Deep RL}
-    \framesubtitle{\ceronMoE{}}
-  \begin{itemize}
-    \item \textbf{Problem:} Increasing parameter count in Deep RL models often hurts performance, hindering the development of scaling laws analogous to those in supervised learning.
-    \item \textbf{Hypothesis:} Incorporating Mixture-of-Expert (MoE) modules, especially Soft MoEs (\puigcerverSoftMoE{}), into value-based networks can lead to more parameter-scalable models.
-    \item \textbf{Key Contributions}:
-    \begin{itemize}
-        \item Demonstrates that Soft MoEs significantly improve performance and parameter scalability in value-based Deep RL agents (DQN, Rainbow) across various training regimes and model sizes.
-        \item Provides empirical evidence towards developing scaling laws for RL.
-        \item Analyzes factors underlying these improvements, including gating mechanisms, tokenization, and expert properties.
-        \item Explores promising future directions like Offline RL, low-data regimes, and architectural variants.
-    \end{itemize}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Background: Value-Based Deep RL}
-  \begin{itemize}
-    \item RL problems are often modeled as Markov Decision Processes (MDPs) $\langle\mathcal{X},\mathcal{A},\mathcal{P},\mathcal{R},\gamma\rangle$ (Sutton \& Barto, 1998).
-    \item Goal: Find an optimal policy $\pi^*$ that maximizes expected discounted rewards.
-    \item Value-based methods estimate state-action value functions, $Q^\pi(x,a)$.
-    \item DQN (\mnihDQN{}) uses neural networks $Q_\theta \approx Q$.
-    \item Architectures:
+\begin{frame}{Research Overview}
+  \begin{center}
+    \Large \textbf{Two Groundbreaking Studies, One Revolutionary Insight}
+  \end{center}
+  
+  \vspace{0.5em}
+  \begin{columns}[T]
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Paper 1: Ceron et al. (2024)}
+        \small
+        \textbf{Finding:} SoftMoE enables parameter scaling\\
+        \textbf{Question:} Why does it work?
         \begin{itemize}
-            \item Original DQN: 3 conv layers + 2 dense layers (CNN architecture).
-            \item Impala architecture (\espeholtImpala{}): Uses ResNet, generally yields better performance (Graesser et al., 2022).
+          \item[\checkmark] Proved scaling is possible
+          \item[\checkmark] Showed consistent improvements
+          \item[?] Mechanism unclear
         \end{itemize}
-    \item Replay Buffer \& Ratio: Stores transitions; ratio of gradient updates to environment steps.
-    \item Rainbow (\hesselRainbow{}) extends DQN with multiple algorithmic improvements.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Background: Mixtures of Experts (MoE)}
-  \begin{itemize}
-    \item MoEs (\shazeerMoE{}) consist of $n$ "expert" sub-networks and a gating network (router) that sends input tokens to $k$ experts (often $k=1$).
-    \item Induces sparse activations, enabling faster inference and distributed computation (\fedusSwitch{}).
-    \item \textbf{Soft MoE} (\puigcerverSoftMoE{}):
-    \begin{itemize}
-        \item Fully differentiable soft assignment of tokens-to-experts, replacing hard assignments.
-        \item Achieved by learned mixes of per-token weightings for each expert slot.
-        \item Input tokens $X \in \mathbb{R}^{m \times d}$. Experts $f_i: \mathbb{R}^d \rightarrow \mathbb{R}^d$.
-        \item Dispatch weights $D$ and Combine weights $C$ learned via parameter matrix $\Phi$.
-        \item Aims for better accuracy/computational cost trade-off.
-    \end{itemize}
-    \item \textbf{Top1-MoE}: A common hard-gating MoE where each token is routed to a single expert ($k=1$) (\shazeerMoE{}; \fedusSwitch{}).
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Proposed MoE Integration in Deep RL (Paper 1)}
-  \begin{figure}
-    \centering
-    \fbox{\parbox[c][10em][c]{.8\textwidth}{\centering Placeholder for Figure 2 from \ceronMoE{} \\ Illustrating baseline vs. MoE architecture.}}
-    \caption{Incorporating MoE modules into deep RL networks. The penultimate dense layer is replaced by an MoE module. (Based on \ceronMoE{})}
-  \end{figure}
-  \begin{itemize}
-    \item \textbf{Placement}: MoE module replaces the penultimate dense layer of the Q-network (\shazeerMoE{}; \fedusSwitch{}; Gale et al., 2023).
-    \item Each expert has the same dimensionality as the original dense layer, effectively widening it.
-    \item \textbf{Tokenization}: Since RL with visual inputs doesn't have explicit tokens like NLP:
-    \begin{itemize}
-        \item Output of conv encoder $C^{(h,w,d)}$ is split into $h \times w$ tokens of dimensionality $d$ (\textbf{PerConv}). (Inspired by Dosovitskiy et al. (2021))
-        \item Other schemes explored: \textbf{PerFeat} ($d$ tokens of dim $h \times w$), \textbf{PerSamp} (entire encoder output as one token).
-    \end{itemize}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Experimental Setup (Paper 1)}
-  \begin{itemize}
-    \item Agents: DQN (\mnihDQN{}) and Rainbow (\hesselRainbow{}).
-    \item Encoder: Primarily Impala ResNet (\espeholtImpala{}), also CNN for comparison.
-    \item Environment: 20 games from Arcade Learning Environment (ALE) (Bellemare et al., 2013b) with sticky actions (Machado et al., 2018).
-    \item Evaluation: Interquartile Mean (IQM) over 200M steps, 5 seeds, 95\% confidence intervals (\agarwalStats{}).
-    \item Baseline Comparison: Simple widening of the penultimate layer by the number of experts.
-    \item Implementation: Dopamine library (Castro et al., 2018).
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Key Result: SoftMoE Improves Performance \& Scalability (Paper 1)}
-  \begin{figure}
-    \centering
-     \fbox{\parbox[c][10em][c]{.8\textwidth}{\centering Placeholder for Figure 1 from \ceronMoE{} \\ Showing IQM scores vs. Number of experts for DQN and Rainbow with Baseline, SoftMoE, Top1-MoE.}}
-    \caption{SoftMoE shows clear performance gains that increase with the number of experts, while baseline performance degrades with widening. Top1-MoE shows mixed results. (Figure from \ceronMoE{})}
-  \end{figure}
-  \begin{itemize}
-    \item SoftMoE:
-    \begin{itemize}
-        \item Clear performance gains, increasing with number of experts (e.g., 1 to 8 experts in Rainbow $\rightarrow$ 20\% improvement).
-        \item Outperforms baseline where widening the layer hurts performance (e.g. Rainbow baseline with 8x layer width $\rightarrow$ 40\% decrease).
-    \end{itemize}
-    \item Top1-MoE:
-    \begin{itemize}
-        \item Provides gains in Rainbow but fails to exhibit the parameter-scalability of SoftMoE.
-    \end{itemize}
-    \item This contrasts prior work showing difficulty in scaling standard Deep RL networks (Farebrother et al., 2022; Taiga et al., 2022; Schwarzer et al., 2023).
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Impact of Replay Ratio (Paper 1)}
-  \begin{figure}
-    \centering
-     \fbox{\parbox[c][8em][c]{.8\textwidth}{\centering Placeholder for Figure 4 from \ceronMoE{} \\ Showing IQM scores vs. Replay ratio for DQN and Rainbow with Baseline and SoftMoE.}}
-    \caption{SoftMoE maintains a strong advantage over the baseline even at high replay ratios. (Figure from \ceronMoE{})}
-  \end{figure}
-  \begin{itemize}
-    \item Deep RL agents typically struggle with performance when scaling the replay ratio without interventions (D'Oro et al., 2023; Schwarzer et al., 2023).
-    \item SoftMoEs demonstrate robustness, maintaining advantages over the baseline even at high replay ratios, indicating better parameter efficiency.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Impact of Design Choices (Paper 1) - Part 1}
-  \begin{itemize}
-    \item \textbf{Number of Experts} (\fedusSwitch{} argued this is efficient for scaling):
+      \end{block}
+    \end{column}
+    \begin{column}{0.48\textwidth}
+      \begin{block}{Paper 2: Sokar et al. (2024)}
+        \small
+        \textbf{Finding:} Tokenization is the key\\
+        \textbf{Answer:} It's not about experts!
         \begin{itemize}
-            \item SoftMoE benefits from more experts.
-            \item Top1-MoE does not show this trend in these experiments.
+          \item[\checkmark] Isolated the mechanism
+          \item[\checkmark] Single expert works
+          \item[\checkmark] Tokenization critical
         \end{itemize}
-    \item \textbf{Dimensionality of Experts}:
-    \begin{figure}
-      \centering
-       \fbox{\parbox[c][6em][c]{.6\textwidth}{\centering Placeholder for Figure 5 from \ceronMoE{} \\ IQM vs. Num experts for Rainbow, SoftMoE (unchanged) vs SoftMoE (dim / NumExperts).}}
-      \caption{SoftMoE maintains performance even with smaller expert dimensionality (total parameters similar to original baseline), suggesting benefits from structured sparsity, not just expert size. (Figure from \ceronMoE{})}
-    \end{figure}
-  \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
+  
+  \vspace{1em}
+  \begin{center}
+    \colorbox{blue!20}{\parbox{0.8\textwidth}{\centering
+    \textbf{Combined Insight:} The secret is not multiple experts,\\
+    but how we structure the data flow through tokenization}}
+  \end{center}
 \end{frame}
 
-\begin{frame}{Impact of Design Choices (Paper 1) - Part 2}
-  \begin{itemize}
-    \item \textbf{Gating and Combining}:
-        \begin{itemize}
-            \item Extra learned parameters from gating/combining are beneficial, especially with multiple experts.
-            \item SoftMoE with a single expert still shows gains for Rainbow, suggesting the learned $\Phi$ matrix (see \puigcerverSoftMoE{}) has a beneficial role.
-            \item Random $\Phi$ performs worse than learned $\Phi$, confirming learning is important (Right panel of Fig 8, \ceronMoE{}).
-        \end{itemize}
-    \item \textbf{Tokenization}:
-    \begin{figure}
-      \centering
-       \fbox{\parbox[c][6em][c]{.7\textwidth}{\centering Placeholder for Figure 6 from \ceronMoE{} \\ Learning curves for different tokenization methods on Rainbow (SoftMoE vs Top1-MoE).}}
-      \caption{PerConv tokenization works best with SoftMoE. Top1-MoE benefits more from PerFeat. PerSamp is worst for both. (Figure from \ceronMoE{})}
-    \end{figure}
-  \end{itemize}
-\end{frame}
+% --- Section 1: The Problem ---
+\section{Problem Background: Deep RL Scaling Challenges}
 
-\begin{frame}{Impact of Design Choices (Paper 1) - Part 3}
-  \begin{itemize}
-    \item \textbf{Encoder Architecture}:
-    \begin{figure}
-      \centering
-       \fbox{\parbox[c][6em][c]{.7\textwidth}{\centering Placeholder for Figure 7 from \ceronMoE{} \\ Learning curves for CNN encoder on DQN and Rainbow (Baseline, Top1-MoE, SoftMoE).}}
-      \caption{SoftMoE provides benefits when used with the standard CNN encoder (\mnihDQN{}), not just Impala (\espeholtImpala{}). (Figure from \ceronMoE{})}
-    \end{figure}
-    \item \textbf{Game Selection}:
-        \begin{itemize}
-            \item Findings are not limited to the 20-game subset; SoftMoE shows improved performance over the full 60 Atari 2600 game suite (Left panel of Fig 8, \ceronMoE{}).
-        \end{itemize}
-    \item \textbf{Load Balancing for Top1-MoE}:
-        \begin{itemize}
-            \item Adding load-balancing losses (Ruiz et al., 2021) to Top1-MoE did not significantly boost its performance (Fig 9, \ceronMoE{}).
-        \end{itemize}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Additional Analysis: Network Properties (Paper 1)}
-  \begin{figure}
-    \centering
-     \fbox{\parbox[c][12em][c]{.9\textwidth}{\centering Placeholder for Figure 10 from \ceronMoE{} \\ Plots for Return, EntkSrank, FeatureNorm, Dormant Neurons for Baseline, Top1-MoE, SoftMoE.}}
-    \caption{MoE architectures show: higher ENTK rank, fewer dormant neurons (Sokar et al., 2023), and less feature norm growth vs baseline (Kumar et al., 2021a; Lyle et al., 2022b). (Figure from \ceronMoE{})}
-  \end{figure}
-  \begin{itemize}
-    \item MoE architectures (both Top1 and Soft) exhibit:
-    \begin{itemize}
-        \item Higher numerical ranks of Empirical Neural Tangent Kernel (ENTK) matrices.
-        \item Negligible dormant neurons.
-        \item Less feature norm growth.
-    \end{itemize}
-    \item These suggest a stabilizing effect on optimization dynamics.
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Future Directions from Paper 1}
-  \begin{itemize}
-    \item \textbf{Offline RL} (Kumar et al., 2021b):
-        \begin{itemize}
-            \item SoftMoE with CQL (Kumar et al., 2020) and CQL+C51 (Kumar et al., 2022) shows improved performance.
-        \end{itemize}
-    \item \textbf{Low-Data Regimes} (Kaiser et al., 2020 benchmark):
-        \begin{itemize}
-            \item DrQ($\epsilon$) (Yarats et al., 2021) and DER (Van Hasselt et al., 2019): Gains observed at 50M steps, particularly with DER.
-        \end{itemize}
-    \item \textbf{Expert Variants / Architectural Exploration}:
-        \begin{itemize}
-            \item \textit{Big} experts (full network per expert) with $\ell_2$ normalization (\puigcerverSoftMoE{}) shows promise, especially in DQN.
-            \item \textit{All} (SoftMoE at each layer) did not provide significant gains.
-        \end{itemize}
-  \end{itemize}
-\end{frame}
-
-% --- Section 3: Paper 2: Don't Flatten, Tokenize! (Sokar et al., 2024) ---
-\section{Paper 2: Don't flatten, tokenize! Unlocking SoftMoE's Efficacy}
-\begin{frame}{Paper 2: Core Idea & Contributions}
-    \frametitle{Don't flatten, tokenize! Unlocking the key to SoftMoE's efficacy in deep RL}
-    \framesubtitle{\sokarTokenize{}}
-  \begin{itemize}
-    \item \textbf{Building on Paper 1 (\ceronMoE{})}: SoftMoEs show promise, but \textit{why} are they effective in online RL?
-    \item Paper 1 hypothesized structured sparsity was key, but single-expert gains were puzzling.
-    \item \textbf{Key Finding (Surprising Result)}: The tokenization of the encoder output, \textit{rather than the use of multiple experts}, is the primary driver of SoftMoE's efficacy.
-    \item \textbf{Key Contributions}:
-    \begin{itemize}
-        \item In-depth analysis isolating factors driving SoftMoE performance gains.
-        \item Demonstrates that even a single, appropriately scaled expert with tokenization can maintain performance gains.
-        \item Shows experts within SoftMoEs exhibit redundancy, not specialization to token subsets.
-        \item Implies common practice of flattening conv encoder outputs in pixel-based Deep RL might be suboptimal.
-    \end{itemize}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Recap: Architectures \& Tokenization (Paper 2 Focus)}
-  \begin{figure}
-    \centering
-     \fbox{\parbox[c][9em][c]{.9\textwidth}{\centering Placeholder for Figure 2 from \sokarTokenize{} \\ Showing Baseline, SoftMoE, and Top-k MoE architectures.}}
-    \caption{Baseline flattens encoder output. MoE architectures (SoftMoE, Top-k) tokenize it before processing by experts. (Based on \sokarTokenize{})}
-  \end{figure}
-  \begin{itemize}
-    \item Standard RL (e.g., DQN): Convolutional encoder output $(h,w,d)$ is flattened into a vector $h \times w \times d$ before dense layers.
-    \item MoE Architectures (as in Paper 1, and focus of Paper 2):
-        \begin{itemize}
-            \item Encoder output is \textit{tokenized}.
-            \item SoftMoE: Each expert slot gets a learned weighted combination of all tokens.
-            \item Top-k MoE (Expert Choice) (Zhou et al., 2022): Each expert chooses $p$ tokens for its $p$ slots.
-        \end{itemize}
-  \end{itemize}
-\end{frame}
-
-\begin{frame}{Key Finding: Tokenization is Crucial (Paper 2)}
-  \begin{columns}[T] % Align columns at the top
-    \begin{column}{0.5\textwidth}
-      \textbf{Tokenized Baseline (Rainbow-lite)}:
-      \begin{itemize}
-          \item Simply adding tokenization (reshape encoder output to $[h \times w, d]$ then sum/avg over tokens) to a Rainbow-lite baseline (without full MoE) yields significant improvements.
-          \item This provides strong evidence for tokenization's importance.
-      \end{itemize}
+\begin{frame}{The Parameter Scaling Problem in Deep RL}
+  \begin{columns}[T]
+    \begin{column}{0.6\textwidth}
       \begin{figure}
         \centering
-         \fbox{\parbox[c][4em][c]{.9\textwidth}{\centering Placeholder for Figure 5 from \sokarTokenize{} \\ IQM for tokenized Rainbow-lite.}}
-        \caption{Tokenizing encoder output in baseline improves performance. (Figure from \sokarTokenize{})}
+        \includegraphics[width=\textwidth]{Mixtures_of_Experts_Unlock Parameter_Scaling_for_Deep_RL/figures/rainbowScalingPlot.pdf}
+        \caption{Traditional approach hurts performance}
+      \end{figure}
+    \end{column}
+    \begin{column}{0.4\textwidth}
+      \textbf{Key Challenges:}
+      \begin{itemize}
+        \item Adding parameters \textbf{hurts} RL performance \fcite{ceron2024mixtures}
+        \item Difficult to develop scaling laws \fcite{kaplan2020scaling}
+        \item Need new architectural approaches
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Why Traditional Scaling Methods Fail}
+  \begin{columns}[T]
+    \begin{column}{0.6\textwidth}
+      \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{Mixtures_of_Experts_Unlock Parameter_Scaling_for_Deep_RL/figures/representations.pdf}
+        \caption{Unique phenomena in deep RL}
+      \end{figure}
+    \end{column}
+    \begin{column}{0.4\textwidth}
+      \textbf{Key Challenges:}
+      \begin{itemize}
+        \item Dormant neurons \fcite{sokar2023dormant}
+        \item Passive learning difficulties
+        \item Capacity loss issues
+        \item Regularization needs \fcite{kumar2021dr3}
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% --- Section 2: Solution 1 - SoftMoE ---
+\section{Solution Exploration: Soft Mixture of Experts}
+
+\begin{frame}{Soft Mixture of Experts (SoftMoE) Architecture}
+  \begin{columns}[T]
+    \begin{column}{0.55\textwidth}
+      \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{Mixtures_of_Experts_Unlock Parameter_Scaling_for_Deep_RL/figures/moeArchitecture.pdf}
+        \caption{SoftMoE integration in deep RL}
+      \end{figure}
+    \end{column}
+    \begin{column}{0.45\textwidth}
+      \textbf{Key Features:}
+      \begin{itemize}
+        \item \textbf{Soft Assignment}: Differentiable routing
+        \item \textbf{Strategic Placement}: Replaces dense layer
+        \item \textbf{Spatial Preservation}: Maintains structure
+        \item No discrete routing decisions
+        \item Fully end-to-end trainable
+        \item Computationally efficient
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{SoftMoE's Breakthrough Results}
+  \begin{columns}[T]
+    \begin{column}{0.65\textwidth}
+      \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{Mixtures_of_Experts_Unlock Parameter_Scaling_for_Deep_RL/figures/combinedTopline.pdf}
+        \caption{SoftMoE achieves parameter scalability}
+      \end{figure}
+    \end{column}
+    \begin{column}{0.35\textwidth}
+      \textbf{Key Results:}
+      \begin{itemize}
+        \item \textbf{20\%} improvement with 8 experts
+        \item \textbf{40\%} degradation with traditional scaling
+        \item Robust across different settings \fcite{ceron2024mixtures}
+      \end{itemize}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+% --- Section 3: Key Discovery - Tokenization ---
+\section{Key Discovery: The True Role of Tokenization}
+
+\begin{frame}{Tokenization Scheme Comparison}
+  \begin{figure}
+    \centering
+    \includegraphics[width=0.8\textwidth]{Don_t_flatten_tokenize/figures/tokenizationSchemes.pdf}
+    \caption{Architectural comparison of different tokenization strategies}
+  \end{figure}
+  
+  \begin{itemize}
+    \item \textbf{PerConv}: $(h,w,d) \rightarrow h \times w$ tokens of dimension $d$
+    \item \textbf{PerFeat}: $(h,w,d) \rightarrow d$ tokens of dimension $h \times w$
+    \item \textbf{PerSamp}: Entire output as single token
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Surprising Discovery: Single Expert Can Succeed}
+  \begin{center}
+    \Large \colorbox{red!20}{\textbf{SHOCKING REVELATION}}
+  \end{center}
+  
+  \begin{columns}[T]
+    \begin{column}{0.6\textwidth}
+      \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{Don_t_flatten_tokenize/figures/results/SoftMoE-x4_vs_Baseline_w_extralayer.pdf}
+        \caption{Single expert vs multi-expert comparison}
+      \end{figure}
+    \end{column}
+    \begin{column}{0.4\textwidth}
+      \begin{block}{Core Insight}
+        \textbf{Tokenization}, not multiple experts, drives SoftMoE's success!
+        
+        \vspace{0.5em}
+        This challenges the assumption that expert diversity drives performance.
+      \end{block}
+    \end{column}
+  \end{columns}
+\end{frame}
+
+\begin{frame}{Tokenization Effectiveness Validation}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{Don_t_flatten_tokenize/figures/results/aggregate_comparison_just_iqm_bar.pdf}
+        \caption{Tokenized baseline vs traditional baseline}
       \end{figure}
     \end{column}
     \begin{column}{0.5\textwidth}
-      \textbf{Single Expert Performance}:
-      \begin{itemize}
-          \item SoftMoE with a \textit{single, scaled expert} (SoftMoE-1) achieves comparable performance to SoftMoE with multiple experts (SoftMoE-4, SoftMoE-8).
-          \item Even ExpertChoice-1 (non-combined tokenization) with a single scaled expert performs well.
-          \item This highlights that benefits are not solely from multiple specialized experts.
-      \end{itemize}
-        \begin{figure}
+      \begin{figure}
         \centering
-         \fbox{\parbox[c][4em][c]{.9\textwidth}{\centering Placeholder for Figure 1 \& 6 from \sokarTokenize{} \\ Comparing scaled baseline, SoftMoE-N, and SoftMoE-1 scaled.}}
-        \caption{Single scaled expert with tokenization matches multi-expert performance. (Figures from \sokarTokenize{})}
+        \includegraphics[width=\textwidth]{Don_t_flatten_tokenize/figures/results/tokentypes__just_iqm_bar.pdf}
+        \caption{Effects of different tokenization schemes}
       \end{figure}
     \end{column}
   \end{columns}
-  \textbf{Conclusion}: (Combined) tokenization is a key driver of SoftMoE's efficacy.
+  
+  \begin{itemize}
+    \item Simple tokenized baseline significantly improves performance
+    \item PerConv tokenization works best
+    \item Preserving spatial structure is crucial
+  \end{itemize}
 \end{frame}
 
-\begin{frame}{Analysis of Tokenization Schemes (Paper 2)}
+% --- Section 4: Architecture Analysis ---
+\section{Deep Analysis: Architecture Comparison \& Mechanism}
+
+\begin{frame}{Architecture Comparison: Traditional vs Tokenized}
   \begin{figure}
     \centering
-     \fbox{\parbox[c][8em][c]{.8\textwidth}{\centering Placeholder for Figure 3 \& 7 from \sokarTokenize{} \\ Showing various tokenization schemes (PerConv, PerFeat, PerPatch, Shuffled) and their performance (IQM).}}
-    \caption{Comparison of tokenization methods (PerConv, PerFeat, PerPatch, Shuffled) for SoftMoE-1. (Figures from \sokarTokenize{})}
+    \includegraphics[width=0.9\textwidth]{Don_t_flatten_tokenize/figures/architectures.pdf}
+    \caption{Baseline, SoftMoE, and Top-k MoE architecture comparison}
   \end{figure}
+  
   \begin{itemize}
-    \item \textbf{PerConv} (tokens are $d$-dim slices; $h \times w$ tokens): Performs best, consistent with \ceronMoE{}.
-    \item \textbf{PerFeat} (tokens are $h \times w$-dim slices; $d$ tokens): Performs worse than PerConv.
-    \item \textbf{PerPatch} (split into $\rho$ patches, avg pooling, then $d$-dim tokens): Close to PerConv, degradation likely from pooling/reduced dim.
-    \item \textbf{Shuffled} (PerConv after fixed permutation on encoder output): Worst performing, indicating maintaining spatial structure of encoder output is crucial.
+    \item \textbf{Traditional approach}: Flattens encoder output
+    \item \textbf{MoE approach}: Tokenizes then processes by experts
+    \item \textbf{Key difference}: Preserving vs losing spatial information
   \end{itemize}
 \end{frame}
 
-\begin{frame}{Further Analysis (Paper 2)}
+\begin{frame}{Expert Utilization Analysis: The Redundancy Problem}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{Don_t_flatten_tokenize/figures/results/SoftMoE-4-ExpertsPruning.pdf}
+        \caption{Expert pruning experiment}
+      \end{figure}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{block}{Pruning Test Results}
+        \small
+        Remove 50\% of experts:
+        \begin{itemize}
+          \item Performance drop: \textcolor{red}{\textbf{$< 2\%$}}
+          \item Training: \textcolor{green}{\textbf{Stable}}
+          \item Convergence: \textcolor{green}{\textbf{Unchanged}}
+        \end{itemize}
+      \end{block}
+      
+      \vspace{0.3em}
+      \begin{block}{Implications}
+        \small
+        \begin{itemize}
+          \item Experts learn similar representations
+          \item Scaling experts $\neq$ Scaling performance
+          \item Tokenization does the heavy lifting
+        \end{itemize}
+      \end{block}
+    \end{column}
+  \end{columns}
+  
+  \vspace{0.5em}
+  \begin{center}
+    \colorbox{yellow!30}{\parbox{0.9\textwidth}{\centering
+    \textbf{Paradigm Shift:} Focus on tokenization design, not expert architecture}}
+  \end{center}
+\end{frame}
+
+% --- Section 5: Broader Applications ---
+\section{Extended Applications \& Real Impact}
+
+\begin{frame}{Cross-Algorithm Effectiveness}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{Mixtures_of_Experts_Unlock Parameter_Scaling_for_Deep_RL/figures/dqnToplinePlot.pdf}
+        \caption{DQN algorithm results}
+      \end{figure}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{Don_t_flatten_tokenize/figures/results/section4_DER_aggregate_v2.pdf}
+        \caption{DER algorithm results}
+      \end{figure}
+    \end{column}
+  \end{columns}
+  
+  \begin{itemize}
+    \item \textbf{DQN}: Basic value function learning
+    \item \textbf{Rainbow}: Combination of multiple improvements
+    \item \textbf{DER}: Data efficiency regularization method
+    \item Tokenization shows improvements across different algorithms
+  \end{itemize}
+\end{frame}
+
+\begin{frame}{Network Architecture Generality}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{Mixtures_of_Experts_Unlock Parameter_Scaling_for_Deep_RL/figures/combinedCNN.pdf}
+        \caption{CNN encoder results}
+      \end{figure}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{Don_t_flatten_tokenize/figures/results/60games_aggregate_comparison_just_iqm_bar.pdf}
+        \caption{Full 60-game suite results}
+      \end{figure}
+    \end{column}
+  \end{columns}
+  
+  \begin{itemize}
+    \item Works not only with Impala but also standard CNN encoders
+    \item Improvements across all 60 Atari games
+    \item Method has broad applicability
+  \end{itemize}
+\end{frame}
+
+% --- Section 6: Implications and Future ---
+\section{Important Insights \& Future Directions}
+
+\begin{frame}{Rethinking Deep RL Architecture Design}
+  \begin{block}{Core Insights}
     \begin{itemize}
-        \item \textbf{Computational Efficiency of Combined Tokens} (\puigcerverSoftMoE{} on complexity):
-        \begin{itemize}
-            \item SoftMoE-1 with only 10\% of default slots (or even a single slot) maintains comparable performance.
-        \end{itemize}
-        \item \textbf{Generality of Findings}:
-        \begin{itemize}
-            \item Results hold across the full 60 ALE game suite.
-            \item Performance gains of SoftMoE-1 (scaled) are present with the standard CNN encoder (\mnihDQN{}), not just Impala (\espeholtImpala{}).
-        \end{itemize}
-        \item \textbf{Other Agents (DQN, DER)}:
-        \begin{itemize}
-            \item DQN: SoftMoE-1 (scaled) did not offer significant improvements (MSE loss used, per \ceronMoE{}).
-            \item DER (Van Hasselt et al., 2019): Consistent with Rainbow, SoftMoE-1 (scaled) achieved gains comparable to SoftMoE-4.
-        \end{itemize}
+      \item \textbf{Flattening is harmful}: Traditional flattening may lose critical spatial information
+      \item \textbf{Tokenization is key}: Spatial structure-preserving tokenization drives performance gains
+      \item \textbf{Expert redundancy}: Current MoE setups have low expert utilization
+      \item \textbf{Parameter scaling}: Correct architecture design enables effective parameter scaling
     \end{itemize}
-\end{frame}
-
-\begin{frame}{Expert Utilization \& Redundancy (Paper 2)}
-  \begin{itemize}
-    \item \textbf{Finding}: Main benefit of SoftMoE is tokenization and weighted combination, not multiple experts.
-    \item Evidence suggests experts are redundant, not specialized (Fig 4, \sokarTokenize{}).
-        \begin{itemize}
-            \item Pruning 2 experts from SoftMoE-4 during training did not change performance (Fig 16, \sokarTokenize{}).
-        \end{itemize}
-    \item \textbf{Opportunity}: Develop techniques to improve expert utilization.
-    \item Explored existing techniques (periodic resets - Nikishin et al., 2022; Shrink \& Perturb (S\&P) - Ash and Adams, 2020; D'Oro et al., 2022; Schwarzer* et al., 2023):
-    \begin{figure}
-      \centering
-       \fbox{\parbox[c][6em][c]{.7\textwidth}{\centering Placeholder for Figure 11 from \sokarTokenize{} \\ IQM for Resets/S\&P on Rainbow and DER with SoftMoE-4.}}
-      \caption{Resets and S\&P benefited DER but degraded Rainbow performance. (Figure from \sokarTokenize{})}
-    \end{figure}
-  \end{itemize}
-\end{frame}
-
-% --- Section 4: Combined Discussion & Conclusion ---
-\section{Combined Discussion \& Conclusion}
-\begin{frame}{Synthesis: Why MoEs (and Tokenization) Help in Deep RL}
-  \begin{itemize}
-    \item \textbf{Parameter Scaling Problem}: Standard Deep RL nets often fail to improve with more parameters.
-    \item \textbf{Paper 1 Shows SoftMoE Scales}: \ceronMoE{} demonstrates that SoftMoEs enable performance to scale with model size.
-    \item \textbf{Paper 2 Uncovers the "Why"}: \sokarTokenize{} pinpoints \textit{tokenization} of the convolutional encoder's output as the primary driver.
+  \end{block}
+  
+  \begin{block}{Design Principles}
     \begin{itemize}
-        \item Preserving spatial structure from conv layers (via PerConv-like tokenization) seems critical.
-        \item Flattening, the common practice, is likely suboptimal.
-        \item A single, appropriately scaled expert with tokenization largely replicates multi-expert performance.
+      \item Prioritize spatial information preservation
+      \item Explore more effective expert allocation strategies
+      \item Reevaluate traditional architectural assumptions
     \end{itemize}
-    \item \textbf{Stabilizing Effect}: MoE modules have a stabilizing effect on optimization dynamics (e.g., higher ENTK rank, fewer dormant neurons, per \ceronMoE{}).
-  \end{itemize}
+  \end{block}
 \end{frame}
 
-\begin{frame}{Broader Implications \& Open Questions}
-  \begin{itemize}
-    \item \textbf{Rethink Encoder Output Processing}: Move away from simple flattening of convolutional outputs in pixel-based RL.
-    \item \textbf{Expert Utilization}: Experts in current MoE setups for RL seem underutilized/redundant.
-        \begin{itemize}
-            \item Need for new techniques to encourage expert specialization.
-        \end{itemize}
-    \item \textbf{Applicability to Other RL Paradigms}:
-        \begin{itemize}
-            \item Promise in Offline RL and certain low-data regimes (\ceronMoE{}).
-            \item Lack of gains in non-pixel actor-critic tasks might be due to tokenization's lesser role without conv encoders (\ceronMoE{}; \sokarTokenize{}).
-            \item Role of categorical losses (e.g., in Rainbow) might complement tokenization benefits (\sokarTokenize{}; Farebrother et al., 2024).
-        \end{itemize}
-    \item \textbf{Many Open Avenues}: Different $k$ for Top-k MoEs, alternative tokenization, router optimizers, etc. (\ceronMoE{}).
-  \end{itemize}
+\begin{frame}{Future Research Directions}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \textbf{Architecture Optimization}
+      \begin{itemize}
+        \item More efficient tokenization schemes
+        \item Expert specialization mechanisms
+        \item Adaptive routing strategies
+        \item Computational efficiency optimization
+      \end{itemize}
+      
+      \textbf{Application Extension}
+      \begin{itemize}
+        \item Continuous control tasks
+        \item Multi-task reinforcement learning
+        \item Offline reinforcement learning
+        \item Large-scale environments
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \textbf{Theoretical Understanding}
+      \begin{itemize}
+        \item Theoretical foundations of tokenization
+        \item Expert dynamics analysis
+        \item Scaling law research
+        \item Generalization capability analysis
+      \end{itemize}
+      
+      \textbf{Practical Deployment}
+      \begin{itemize}
+        \item Distributed training optimization
+        \item Inference efficiency improvement
+        \item Hardware adaptation
+        \item Industrial applications
+      \end{itemize}
+    \end{column}
+  \end{columns}
 \end{frame}
 
-\begin{frame}{Conclusion}
-  \begin{itemize}
-    \item Increasing model size in Deep RL is challenging, but SoftMoEs offer a path to better parameter scalability (\ceronMoE{}).
-    \item The key to SoftMoE's effectiveness in value-based Deep RL on pixel environments is primarily the \textbf{tokenization} of convolutional encoder outputs, which preserves crucial spatial information (\sokarTokenize{}).
-    \item Even a single, scaled expert with proper tokenization can achieve strong performance, questioning the necessity of numerous experts if not utilized effectively (\sokarTokenize{}).
-    \item These findings encourage a re-evaluation of standard architectural choices in Deep RL and open new avenues for designing more scalable and efficient agents.
-  \end{itemize}
-\end{frame}
+% --- Conclusion ---
+\section{Conclusion}
 
-\begin{frame}[allowframebreaks]{Key References}
-  \footnotesize{
+\begin{frame}{Research Summary}
+  \begin{center}
+    \Large \textbf{Complete Path from Problem to Solution}
+  \end{center}
+  
+  \begin{enumerate}
+    \item \textbf{Problem Identification}: Parameter scaling difficulties in deep RL \fcite{ceron2024mixtures}
+    \item \textbf{Solution}: SoftMoE achieves parameter scalability
+    \item \textbf{Mechanism Discovery}: Tokenization is the key success factor \fcite{sokar2024tokenize}
+    \item \textbf{Deep Insights}: Rethinking architectural design paradigms
+  \end{enumerate}
+  
+  \vspace{1em}
+  \begin{block}{Main Contributions}
     \begin{itemize}
-        \item Agarwal, R., Schwarzer, M., Castro, P. S., Courville, A. C., & Bellemare, M. (2021). Deep reinforcement learning at the edge of the statistical precipice. \textit{NeurIPS}.
-        \item Ash, J., & Adams, R. P. (2020). On warm-starting neural network training. \textit{NeurIPS}.
-        \item Bellemare, M. G., Naddaf, Y., Veness, J., & Bowling, M. (2013b). The arcade learning environment: An evaluation platform for general agents. \textit{JAIR}.
-        \item Bellemare, M. G., Dabney, W., & Munos, R. (2017). A distributional perspective on reinforcement learning. \textit{ICML}.
-        \item Berner, C., et al. (2019). Dota 2 with large scale deep reinforcement learning. \textit{arXiv}.
-        \item Castro, P. S., Moitra, S., Gelada, C., Kumar, S., & Bellemare, M. G. (2018). Dopamine: A Research Framework for Deep Reinforcement Learning. \textit{arXiv}.
-        \item \ceronMoE{} Mixtures of Experts Unlock Parameter Scaling for Deep RL. \textit{ICML}.
-        \item Ceron, J. S. O., & Castro, P. S. (2021). Revisiting rainbow: Promoting more insightful and inclusive deep reinforcement learning research. \textit{ICML}.
-        \item Dosovitskiy, A., et al. (2021). An image is worth 16x16 words: Transformers for image recognition at scale. \textit{ICLR}.
-        \item D'Oro, P., Schwarzer, M., Nikishin, E., Bacon, P.-L., Bellemare, M. G., & Courville, A. (2023). Sample-efficient reinforcement learning by breaking the replay ratio barrier. \textit{ICLR}. (Note: 2022 workshop, 2023 ICLR)
-        \item Espeholt, L., et al. (2018). Impala: Scalable distributed deep-rl with importance weighted actor-learner architectures. \textit{ICML}.
-        \item Evci, U., Gale, T., Menick, J., Castro, P. S., & Elsen, E. (2020). Rigging the lottery: Making all tickets winners. \textit{ICML}.
-        \item Farebrother, J., et al. (2022). Proto-value networks: Scaling representation learning with auxiliary tasks. \textit{ICLR}.
-        \item Farebrother, J., et al. (2024). Stop regressing: Training value functions via classification for scalable deep rl. \textit{ICML}.
-        \item Fedus, W., Zoph, B., & Shazeer, N. (2022). Switch transformers: Scaling to trillion parameter models with simple and efficient sparsity. \textit{JMLR}.
-        \item Gale, T., Elsen, E., & Hooker, S. (2019). The state of sparsity in deep neural networks. \textit{arXiv}.
-        \item Gale, T., Narayanan, D., Young, C., & Zaharia, M. (2023). MegaBlocks: Efficient Sparse Training with Mixture-of-Experts. \textit{MLSJys}.
-        \item Graesser, L., Evci, U., Elsen, E., & Castro, P. S. (2022). The state of sparse training in deep reinforcement learning. \textit{ICML}.
-        \item Hessel, M., et al. (2018). Rainbow: Combining improvements in deep reinforcement learning. \textit{AAAI}.
-        \item Houlsby, N., et al. (2019). Parameter-efficient transfer learning for NLP. \textit{ICML}.
-        \item Kaiser, L., et al. (2020). Model based reinforcement learning for atari. \textit{ICLR}.
-        \item Kaplan, J., et al. (2020). Scaling laws for neural language models. \textit{arXiv}.
-        \item Kumar, A., et al. (2020). Conservative q-learning for offline reinforcement learning. \textit{NeurIPS}.
-        \item Kumar, A., et al. (2021a). Implicit under-parameterization inhibits data-efficient deep reinforcement learning. \textit{ICLR}.
-        \item Kumar, A., et al. (2021b). Dr3: Value-based deep reinforcement learning requires explicit regularization. \textit{ICLR}.
-        \item Kumar, A., et al. (2022). Offline q-learning on diverse multi-task data both scales and generalizes. \textit{ICLR}.
-        \item Lyle, C., Rowland, M., & Dabney, W. (2022a). Understanding and preventing capacity loss in reinforcement learning. \textit{ICLR}.
-        \item Lyle, C., Rowland, M., Dabney, W., Kwiatkowska, M., & Gal, Y. (2022b). Learning dynamics and generalization in deep reinforcement learning. \textit{ICML}.
-        \item Machado, M. C., et al. (2018). Revisiting the arcade learning environment: evaluation protocols and open problems for general agents. \textit{JAIR}.
-        \item \mnihDQN{} Human-level control through deep reinforcement learning. \textit{Nature}.
-        \item Nikishin, E., et al. (2022). The primacy bias in deep reinforcement learning. \textit{ICML}.
-        \item Ostrovski, G., Castro, P. S., & Dabney, W. (2021). The difficulty of passive learning in deep reinforcement learning. \textit{NeurIPS}.
-        \item \puigcerverSoftMoE{} From sparse to soft mixtures of experts. (Note: PDF is 2023, Sokar et al. cites as Puigcerver et al. 2024 for ICLR version)
-        \item Ruiz, C. R., et al. (2021). Scaling vision with sparse mixture of experts. \textit{NeurIPS}.
-        \item Schwarzer, M., et al. (2023). Bigger, better, faster: Human-level Atari with human-level efficiency. \textit{ICML}.
-        \item \shazeerMoE{} Outrageously large neural networks: The sparsely-gated mixture-of-experts layer. \textit{ICLR}.
-        \item \sokarTokenize{} Don't flatten, tokenize! Unlocking the key to SoftMoE's efficacy in deep RL. \textit{arXiv}.
-        \item Sokar, G., Agarwal, R., Castro, P. S., & Evci, U. (2023). The dormant neuron phenomenon in deep reinforcement learning. \textit{ICML}.
-        \item Sutton, R. S., & Barto, A. G. (1998). \textit{Introduction to Reinforcement Learning}. MIT Press.
-        \item Taiga, A. A., et al. (2022). Investigating multi-task pretraining and generalization in reinforcement learning. \textit{ICLR}.
-        \item Van Hasselt, H. P., Hessel, M., & Aslanides, J. (2019). When to use parametric models in reinforcement learning?. \textit{NeurIPS}.
-        \item Vaswani, A., et al. (2017). Attention is all you need. \textit{NeurIPS}.
-        \item Willi, T., Obando-Ceron, J.S., Foerster, J.N., Dziugaite, G.K., Castro, P.S. (2024). Mixture of experts in a mixture of RL settings. \textit{Reinforcement Learning Conference}.
-        \item Yarats, D., Kostrikov, I., & Fergus, R. (2021). Image augmentation is all you need: Regularizing deep reinforcement learning from pixels. \textit{ICLR}.
-        \item Zhou, Y., et al. (2022). Mixture-of-experts with expert choice routing. \textit{NeurIPS}.
+      \item First effective parameter scaling in deep RL
+      \item Revealed tokenization's key role in MoE success
+      \item Provided new guidance principles for future architecture design
     \end{itemize}
-  }
+  \end{block}
 \end{frame}
 
+\begin{frame}{Key Takeaways}
+  \begin{columns}[T]
+    \begin{column}{0.5\textwidth}
+      \textbf{What We Learned:}
+      \begin{itemize}
+        \item Traditional flattening loses spatial information
+        \item Tokenization preserves crucial structure
+        \item Single expert + tokenization $\approx$ Multi-expert performance
+        \item Expert redundancy is a real issue
+      \end{itemize}
+    \end{column}
+    \begin{column}{0.5\textwidth}
+      \textbf{Design Guidelines:}
+      \begin{itemize}
+        \item Preserve spatial structure in conv outputs
+        \item Focus on tokenization over expert count
+        \item Consider computational efficiency
+        \item Evaluate expert utilization
+      \end{itemize}
+    \end{column}
+  \end{columns}
+  
+  \vspace{1em}
+  \begin{center}
+    \textbf{The paradigm shift:} From "How many experts?" to "How to tokenize?"
+  \end{center}
+\end{frame}
+
+\begin{frame}{Impact \& Broader Implications}
+  \begin{block}{Immediate Impact}
+    \begin{itemize}
+      \item Enables parameter scaling in deep RL for the first time
+      \item Works across multiple RL algorithms (DQN, Rainbow, DER)
+      \item Applicable to different network architectures (CNN, Impala)
+      \item Validated on large-scale benchmarks (60 Atari games)
+    \end{itemize}
+  \end{block}
+  
+  \begin{block}{Broader Implications}
+    \begin{itemize}
+      \item Challenges conventional architectural wisdom in RL
+      \item Opens new research directions in tokenization schemes
+      \item Potential applications beyond visual RL tasks
+      \item Foundation for developing RL scaling laws
+    \end{itemize}
+  \end{block}
+\end{frame}
 
 % --- Q&A ---
 \begin{frame}
   \begin{center}
-    \Huge Questions?
+    \Huge Thank You!\\
+    \vspace{1em}
+    \Large Questions \& Discussion
+  \end{center}
+  
+  \vspace{2em}
+  \begin{center}
+    \textit{Rethinking Deep RL Architecture Design:\\
+    From Flattening to Tokenization}
   \end{center}
 \end{frame}
 
